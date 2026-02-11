@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Horror Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 100%;
+            height: 100%;
+            max-width: 600px;
+            max-height: 900px;
+            background: linear-gradient(135deg, #1a0a0a 0%, #0f0f0f 100%);
+            position: relative;
+            border: 3px solid #400000;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-header {
+            padding: clamp(10px, 3%, 20px);
+            background: rgba(40, 0, 0, 0.9);
+            border-bottom: 2px solid #400000;
+            color: #ff3333;
+            text-align: center;
+            font-size: clamp(18px, 5vw, 28px);
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .fullscreen-btn {
+            background: #400000;
+            border: 2px solid #600000;
+            color: #ff3333;
+            padding: clamp(6px, 1.5vw, 12px) clamp(10px, 2vw, 15px);
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-size: clamp(12px, 2vw, 16px);
+            user-select: none;
+        }
+
+        .fullscreen-btn:hover {
+            background: #600000;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        .fullscreen-btn:active {
+            background: #700000;
+        }
+
+        .game-board {
+            flex: 1;
+            position: relative;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23050505" width="100" height="100"/><circle cx="50" cy="50" r="40" fill="%23151515" opacity="0.3"/></svg>');
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 1px;
+            padding: clamp(5px, 2%, 15px);
+            background-blend-mode: overlay;
+        }
+
+        .maze-cell {
+            border: 1px solid rgba(60, 60, 60, 0.5);
+            position: relative;
+        }
+
+        .maze-wall {
+            background: #1a1a1a;
+            border: 1px solid #333;
+        }
+
+        .maze-path {
+            background: #0a0a0a;
+        }
+
+        .player {
+            position: absolute;
+            width: clamp(8px, 3vw, 25px);
+            height: clamp(8px, 3vw, 25px);
+            background: #ffcc00;
+            border-radius: 50%;
+            z-index: 10;
+            box-shadow: 0 0 10px #ffcc00, 0 0 20px rgba(255, 200, 0, 0.5);
+            transition: all 0.1s;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .exit {
+            position: absolute;
+            width: clamp(8px, 3vw, 25px);
+            height: clamp(8px, 3vw, 25px);
+            background: #00ff00;
+            border-radius: 50%;
+            z-index: 8;
+            box-shadow: 0 0 10px #00ff00, 0 0 20px rgba(0, 255, 0, 0.5);
+            animation: pulse 1s infinite;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.3); }
+        }
+
+        .controls {
+            padding: clamp(10px, 2%, 15px);
+            background: rgba(40, 0, 0, 0.9);
+            border-top: 2px solid #400000;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(8px, 2vw, 12px);
+            color: #ffaa00;
+            font-size: clamp(12px, 2.5vw, 16px);
+        }
+
+        .control-info {
+            padding: clamp(6px, 2%, 10px);
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #400000;
+            border-radius: 5px;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .button-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(4px, 1.5vw, 8px);
+            padding: clamp(8px, 1.5%, 12px);
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        .btn {
+            padding: clamp(8px, 2vw, 15px);
+            background: #400000;
+            border: 2px solid #600000;
+            color: #ff3333;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: all 0.2s;
+            user-select: none;
+            font-size: clamp(12px, 2.5vw, 18px);
+            min-height: clamp(35px, 8vw, 50px);
+        }
+
+        .btn:hover, .btn:active {
+            background: #600000;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        .btn-empty {
+            visibility: hidden;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+            padding: clamp(15px, 5%, 30px);
+        }
+
+        .game-over.show {
+            display: flex;
+        }
+
+        .game-over h1 {
+            font-size: clamp(28px, 8vw, 52px);
+            color: #ff3333;
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+            margin-bottom: clamp(10px, 3%, 25px);
+        }
+
+        .game-over p {
+            font-size: clamp(14px, 4vw, 22px);
+            color: #ffaa00;
+            margin-bottom: clamp(15px, 4%, 35px);
+        }
+
+        .game-over button {
+            padding: clamp(10px, 2vw, 18px) clamp(20px, 4vw, 35px);
+            font-size: clamp(14px, 3vw, 20px);
+            background: #400000;
+            color: #ff3333;
+            border: 2px solid #600000;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .game-over button:hover {
+            background: #600000;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+        }
+
+.wall-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            padding: clamp(15px, 5%, 30px);
+        }
+
+        .wall-popup.show {
+            display: flex;
+        }
+
+        .popup-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: hidden;
+        }
+
+        .popup-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            animation: jumpscareShow 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .fullscreen-prompt {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            animation: fadeIn 0.3s;
+        }
+
+        .fullscreen-prompt.show {
+            display: flex;
+        }
+
+        .prompt-content {
+            background: rgba(20, 0, 0, 0.95);
+            border: 3px solid #ff3333;
+            border-radius: 10px;
+            padding: clamp(20px, 5%, 40px);
+            text-align: center;
+            max-width: clamp(300px, 90vw, 500px);
+            box-shadow: 0 0 40px rgba(255, 0, 0, 0.8);
+        }
+
+        .prompt-content h1 {
+            color: #ff3333;
+            font-size: clamp(22px, 6vw, 32px);
+            margin-bottom: clamp(15px, 3%, 25px);
+            text-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+        }
+
+        .prompt-content p {
+            color: #ffaa00;
+            font-size: clamp(14px, 3vw, 18px);
+            margin-bottom: clamp(20px, 4%, 35px);
+            line-height: 1.5;
+        }
+
+        .prompt-buttons {
+            display: flex;
+            gap: clamp(10px, 2vw, 20px);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .prompt-btn {
+            padding: clamp(10px, 2vw, 16px) clamp(20px, 4vw, 40px);
+            font-size: clamp(12px, 2.5vw, 18px);
+            background: #400000;
+            border: 2px solid #600000;
+            color: #ff3333;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .prompt-btn:hover {
+            background: #600000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+        }
+
+        .prompt-btn.primary {
+            background: #600000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes jumpscareShow {
+            0% { transform: scale(1.3) rotate(-2deg); }
+            50% { transform: scale(1.1) rotate(1deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* Mobile Portrait */
+        @media (max-width: 480px) {
+            .game-container {
+                max-width: 100%;
+                max-height: 100%;
+                border: none;
+                border-radius: 0;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .button-pad {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .btn {
+                min-height: clamp(40px, 10vw, 55px);
+            }
+        }
+
+        /* Mobile Landscape */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .game-container {
+                max-height: 100vh;
+            }
+
+            .game-board {
+                padding: clamp(3px, 1%, 8px);
+            }
+
+            .controls {
+                grid-template-columns: 1fr 1.2fr;
+                gap: clamp(5px, 1.5vw, 10px);
+                padding: clamp(8px, 1.5%, 12px);
+            }
+
+            .button-pad {
+                gap: clamp(3px, 1vw, 6px);
+                padding: clamp(6px, 1%, 10px);
+            }
+
+            .btn {
+                min-height: clamp(35px, 7vh, 45px);
+                padding: clamp(6px, 1.5vw, 12px);
+            }
+        }
+
+        /* Tablet & Medium screens */
+        @media (min-width: 600px) and (max-width: 1024px) {
+            .game-container {
+                max-width: 85vw;
+                max-height: 85vh;
+            }
+        }
+
+        /* Large Desktop */
+        @media (min-width: 1025px) {
+            .game-container {
+                max-width: 600px;
+                max-height: 800px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <span>MAZE HORROR</span>
+            <button class="fullscreen-btn" id="fullscreenBtn" title="Toggle Fullscreen">⛶</button>
+        </div>
+        
+        <div class="game-board" id="gameBoard">
+            <!-- Maze will be generated here -->
+        </div>
+
+        <div class="controls">
+            <div class="control-info">
+                <strong>Status:</strong> <span id="status">Find the exit!</span>
+            </div>
+            <div class="button-pad">
+                <button class="btn btn-empty"></button>
+                <button class="btn" id="upBtn">↑</button>
+                <button class="btn btn-empty"></button>
+                <button class="btn" id="leftBtn">←</button>
+                <button class="btn" id="downBtn">↓</button>
+                <button class="btn" id="rightBtn">→</button>
+            </div>
+        </div>
+
+        <div class="game-over" id="gameOver">
+            <h1 id="gameOverTitle">YOU ESCAPED!</h1>
+            <p id="gameOverMessage">You found the exit!</p>
+            <button onclick="location.reload()">Play Again</button>
+        </div>
+
+        <div class="wall-popup" id="wallPopup">
+            <div class="popup-content">
+                <img id="wallImage" src="image.jfif" alt="Horror Jump Scare">
+            </div>
+            <audio id="jumpscareAudio" preload="auto">
+                <source src="sound.mp3" type="audio/mpeg">
+            </audio>
+        </div>
+
+        <div class="fullscreen-prompt" id="fullscreenPrompt">
+            <div class="prompt-content">
+                <h1>⚠️ WARNING ⚠️</h1>
+                <p>For the best immersive horror experience, please enable fullscreen mode!</p>
+                <div class="prompt-buttons">
+                    <button class="prompt-btn primary" id="promptFullscreenBtn">GO FULLSCREEN</button>
+                    <button class="prompt-btn" id="promptSkipBtn">SKIP</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ROWS = 10;
+        const COLS = 10;
+        const WALL = 1;
+        const PATH = 0;
+
+        let maze = [];
+        let playerPos = { row: 1, col: 1 };
+        let exitPos = { row: ROWS - 2, col: COLS - 2 };
+        let gameWon = false;
+
+        // Simple maze generation using recursive backtracking
+        function generateMaze() {
+            maze = Array(ROWS).fill(null).map(() => Array(COLS).fill(WALL));
+            
+            function carve(row, col) {
+                maze[row][col] = PATH;
+                const directions = [[0, 2], [2, 0], [0, -2], [-2, 0]].sort(() => Math.random() - 0.5);
+                
+                for (let [dr, dc] of directions) {
+                    const newRow = row + dr;
+                    const newCol = col + dc;
+                    
+                    if (newRow > 0 && newRow < ROWS && newCol > 0 && newCol < COLS && maze[newRow][newCol] === WALL) {
+                        maze[row + dr / 2][col + dc / 2] = PATH;
+                        carve(newRow, newCol);
+                    }
+                }
+            }
+            
+            carve(1, 1);
+            maze[playerPos.row][playerPos.col] = PATH;
+            maze[exitPos.row][exitPos.col] = PATH;
+        }
+
+        // Render maze on board
+        function renderMaze() {
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+            
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'maze-cell ' + (maze[r][c] === WALL ? 'maze-wall' : 'maze-path');
+                    cell.id = `cell-${r}-${c}`;
+                    gameBoard.appendChild(cell);
+                }
+            }
+            
+            renderPlayer();
+            renderExit();
+        }
+
+        // Render player
+        function renderPlayer() {
+            document.querySelectorAll('.player').forEach(p => p.remove());
+            const cell = document.getElementById(`cell-${playerPos.row}-${playerPos.col}`);
+            if (cell) {
+                const player = document.createElement('div');
+                player.className = 'player';
+                cell.appendChild(player);
+            }
+        }
+
+        // Render exit
+        function renderExit() {
+            document.querySelectorAll('.exit').forEach(e => e.remove());
+            const cell = document.getElementById(`cell-${exitPos.row}-${exitPos.col}`);
+            if (cell) {
+                const exit = document.createElement('div');
+                exit.className = 'exit';
+                cell.appendChild(exit);
+            }
+        }
+
+        // Move player
+        function movePlayer(dRow, dCol) {
+            if (gameWon) return;
+            
+            const newRow = playerPos.row + dRow;
+            const newCol = playerPos.col + dCol;
+            
+            if (newRow >= 0 && newRow < ROWS && newCol >= 0 && newCol < COLS && maze[newRow][newCol] === PATH) {
+                playerPos.row = newRow;
+                playerPos.col = newCol;
+                renderPlayer();
+                
+                // Check if reached exit
+                if (playerPos.row === exitPos.row && playerPos.col === exitPos.col) {
+                    winGame();
+                }
+            } else if (newRow >= 0 && newRow < ROWS && newCol >= 0 && newCol < COLS && maze[newRow][newCol] === WALL) {
+                // Hit a wall - show popup
+                showWallPopup();
+            }
+        }
+
+        // Show wall popup (jump scare)
+        function showWallPopup() {
+            const wallPopup = document.getElementById('wallPopup');
+            const jumpscareAudio = document.getElementById('jumpscareAudio');
+            
+            wallPopup.classList.add('show');
+            
+            // Play the jump scare sound
+            jumpscareAudio.currentTime = 0; // Reset to start
+            jumpscareAudio.play().catch(err => {
+                console.log(`Audio playback failed: ${err.message}`);
+            });
+            
+            // Auto-close after 1.5 seconds for jump scare effect
+            setTimeout(() => {
+                wallPopup.classList.remove('show');
+            }, 1500);
+        }
+
+        // Win condition
+        function winGame() {
+            gameWon = true;
+            document.getElementById('gameOverTitle').textContent = 'YOU ESCAPED!';
+            document.getElementById('gameOverMessage').textContent = 'You found your way out of the maze!';
+            document.getElementById('gameOver').classList.add('show');
+            document.getElementById('status').textContent = 'ESCAPED!';
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') movePlayer(-1, 0);
+            if (e.key === 'ArrowDown') movePlayer(1, 0);
+            if (e.key === 'ArrowLeft') movePlayer(0, -1);
+            if (e.key === 'ArrowRight') movePlayer(0, 1);
+        });
+
+        // Touch/Mobile controls
+        document.getElementById('upBtn').addEventListener('click', () => movePlayer(-1, 0));
+        document.getElementById('downBtn').addEventListener('click', () => movePlayer(1, 0));
+        document.getElementById('leftBtn').addEventListener('click', () => movePlayer(0, -1));
+        document.getElementById('rightBtn').addEventListener('click', () => movePlayer(0, 1));
+
+        // Fullscreen functionality
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const gameContainer = document.querySelector('.game-container');
+
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                // Request fullscreen
+                gameContainer.requestFullscreen().catch(err => {
+                    console.log(`Fullscreen request failed: ${err.message}`);
+                });
+            } else {
+                // Exit fullscreen
+                document.exitFullscreen();
+            }
+        });
+
+        // Update button text when fullscreen changes
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenBtn.textContent = '⛶';
+                fullscreenBtn.title = 'Exit Fullscreen';
+            } else {
+                fullscreenBtn.textContent = '⛶';
+                fullscreenBtn.title = 'Toggle Fullscreen';
+            }
+        });
+
+        // Fullscreen prompt on game start
+        const fullscreenPrompt = document.getElementById('fullscreenPrompt');
+        const promptFullscreenBtn = document.getElementById('promptFullscreenBtn');
+        const promptSkipBtn = document.getElementById('promptSkipBtn');
+
+        // Show prompt on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                fullscreenPrompt.classList.add('show');
+            }, 500);
+        });
+
+        promptFullscreenBtn.addEventListener('click', () => {
+            gameContainer.requestFullscreen().catch(err => {
+                console.log(`Fullscreen request failed: ${err.message}`);
+            });
+            fullscreenPrompt.classList.remove('show');
+        });
+
+        promptSkipBtn.addEventListener('click', () => {
+            fullscreenPrompt.classList.remove('show');
+        });
+
+        // Allow pressing Escape to close the fullscreen prompt
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && fullscreenPrompt.classList.contains('show')) {
+                fullscreenPrompt.classList.remove('show');
+            }
+        });
+
+        // Initialize game
+        generateMaze();
+        renderMaze();
+    </script>
+</body>
+</html>
