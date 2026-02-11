@@ -568,31 +568,50 @@
         }
 
         // Show wall popup (jump scare)
-        function showWallPopup() {
+        // opts: { force: boolean, onClose: function }
+        function showWallPopup(opts = {}) {
+            const force = !!opts.force;
+            const onClose = typeof opts.onClose === 'function' ? opts.onClose : null;
+
+            // If game is already won, only show when forced (used for win)
+            if (gameWon && !force) return;
+
             const wallPopup = document.getElementById('wallPopup');
             const jumpscareAudio = document.getElementById('jumpscareAudio');
-            
+
+            // Avoid re-showing if it's already visible
+            if (wallPopup.classList.contains('show')) return;
+
             wallPopup.classList.add('show');
-            
+
             // Play the jump scare sound
             jumpscareAudio.currentTime = 0; // Reset to start
             jumpscareAudio.play().catch(err => {
                 console.log(`Audio playback failed: ${err.message}`);
             });
-            
-            // Auto-close after 1.5 seconds for jump scare effect
+
+            // Auto-close after 1.5 seconds for jump scare effect, stop audio, then call onClose
             setTimeout(() => {
                 wallPopup.classList.remove('show');
+                try { jumpscareAudio.pause(); jumpscareAudio.currentTime = 0; } catch (e) {}
+                if (onClose) onClose();
             }, 1500);
         }
 
         // Win condition
         function winGame() {
             gameWon = true;
-            document.getElementById('gameOverTitle').textContent = 'YOU ESCAPED!';
-            document.getElementById('gameOverMessage').textContent = 'You found your way out of the maze!';
-            document.getElementById('gameOver').classList.add('show');
-            document.getElementById('status').textContent = 'ESCAPED!';
+
+            // Show the wall popup (force it even if gameWon) and then show game-over after popup closes
+            showWallPopup({
+                force: true,
+                onClose: () => {
+                    document.getElementById('gameOverTitle').textContent = 'YOU ESCAPED!';
+                    document.getElementById('gameOverMessage').textContent = 'You found your way out of the maze!';
+                    document.getElementById('gameOver').classList.add('show');
+                    document.getElementById('status').textContent = 'ESCAPED!';
+                }
+            });
         }
 
         // Keyboard controls
